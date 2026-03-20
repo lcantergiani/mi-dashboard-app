@@ -333,3 +333,154 @@ body {
     50% { transform: scale(1); box-shadow: 0 0 8px var(--success-color); }
     100% { transform: scale(1); box-shadow: 0 0 0 var(--success-color); }
 }
+
+/* ====================================================
+   RESPONSIVE DESIGN OPTIMIZATIONS (Mobile First UX)
+   ==================================================== */
+
+/* Laptops Pequeñas / Tablets Horizontales */
+@media (max-width: 1200px) {
+    .jarvis-main {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1.2fr 1fr;
+    }
+    .report-panel {
+        grid-column: 1 / -1; /* Pasa a ocupar toda la fila debajo */
+    }
+}
+
+/* Tablets / Patrón Vertical Táctil */
+@media (max-width: 900px) {
+    body {
+        height: auto;
+        overflow-y: auto; /* Scroll global natural */
+        overflow-x: hidden;
+    }
+
+    .jarvis-container {
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+        padding: 1rem;
+    }
+
+    .jarvis-main {
+        display: flex;
+        flex-direction: column;
+        min-height: auto;
+        gap: 1.5rem; /* Separación consistente entre tarjetas */
+    }
+
+    /* MÓVIL: Reordenamiento Exacto Solicitado */
+    .habits-panel { order: 1; }
+    .schedule-panel { order: 2; }
+    .report-panel { order: 3; }
+    .calendar-panel { order: 4; }
+
+    .scrolling-container {
+        max-height: none;
+        overflow-y: visible; /* Paneles crecen según contenido */
+    }
+
+    .calendar-panel {
+        height: 65vh; /* Altura fija en el calendario para scroll interno */
+        flex-shrink: 0;
+    }
+}
+
+/* Teléfonos Móviles Pequeños (iPhone, Android) */
+@media (max-width: 600px) {
+    .jarvis-container {
+        padding: 0.5rem;
+        gap: 0.75rem;
+    }
+
+    /* Reducir Header */
+    .jarvis-header {
+        flex-direction: column;
+        align-items: flex-start;
+        height: auto;
+        padding: 1rem;
+        gap: 0.75rem;
+    }
+
+    .header-center {
+        display: none; /* Ocultar ecualizador visual en móvil */
+    }
+
+    .header-right {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .status-title { font-size: 1rem; }
+    .status-subtitle { font-size: 0.65rem; }
+    #currentTime { font-size: 1.2rem; }
+
+    /* Ajustar tamaño de paneles */
+    .panel {
+        padding: 1rem;
+    }
+
+    /* Calendario Scrollable Horizontalmente */
+    .calendar-panel {
+        padding: 0.5rem !important;
+        height: 60vh;
+    }
+    
+    .calendar-grid {
+        grid-template-columns: 40px repeat(7, minmax(75px, 1fr));
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 10px;
+    }
+
+    .cal-header { font-size: 0.75rem; }
+    .cal-time { font-size: 0.65rem; padding-right: 4px; }
+    
+    .calendar-time-indicator {
+        min-width: 100%;
+        width: max-content;
+    }
+
+    /* Textos y Modales Touch-Friendly */
+    .habit-name, .goal-name {
+        font-size: 0.95rem;
+    }
+    
+    .goal-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+
+    .modal-container {
+        width: 95vw !important;
+        padding: 1.25rem !important;
+    }
+    
+    .modal-body {
+        max-height: 65vh !important;
+        font-size: 0.95rem !important;
+        padding-right: 0.5rem !important; /* Más lugar para texto */
+    }
+
+    /* Evitar Autozom en iOS al enfocar */
+    .jarvis-input {
+        font-size: 16px !important; 
+        padding: 0.85rem;
+    }
+
+    .jarvis-btn {
+        padding: 0.85rem; 
+    }
+
+    .habit-check {
+        width: 24px; height: 24px; flex-shrink: 0;
+    }
+    
+    #loginOverlay .modal-container {
+        width: 90vw !important;
+        padding: 1.5rem !important;
+    }
+}
