@@ -1,10 +1,15 @@
 class JarvisSystem {
     constructor() {
+        // Inicializar cliente de Supabase
+        this.supabase = window.supabase.createClient(
+            'https://xzchfmwilvwmcahdbeyy.supabase.co/',
+            'sb_publishable_XNQvgLhGjsJE6_r5FAkqhw_rflWvFfo'
+        );
         this.state = {
-            goals: JSON.parse(localStorage.getItem('jarvis_goals')) || [],
-            calendar: JSON.parse(localStorage.getItem('jarvis_calendar')) || {},
-            completion: JSON.parse(localStorage.getItem('jarvis_completion')) || {},
-            lastLogin: localStorage.getItem('jarvis_lastLogin') || new Date().toDateString()
+            goals: [],
+            calendar: {},
+            completion: {},
+            lastLogin: new Date().toDateString()
         };
         this.currentModalMode = null; 
         this.selectedCalCell = null; 
@@ -13,11 +18,38 @@ class JarvisSystem {
         this.init();
     }
 
-    init() {
+    async init() {
         this.cacheDOM();
         this.bindEvents();
+        await this.loadData();
         this.startClock();
         this.renderAll();
+    }
+
+    async loadData() {
+        try {
+            const { data, error } = await this.supabase
+                .from('app_state')
+                .select('*')
+                .eq('id', 'jarvis_main')
+                .single();
+                
+            if (error) throw error;
+            
+            if (data) {
+                // Sincronizar estado local con DB
+                this.state.goals = data.goals || [];
+                this.state.calendar = data.calendar || {};
+                this.state.completion = data.completion || {};
+                this.state.lastLogin = data.last_login || new Date().toDateString();
+            }
+        } catch (err) {
+            console.error("Error cargando datos:", err);
+            // Intentar cargar de localStorage como fallback la primera vez
+            this.state.goals = JSON.parse(localStorage.getItem('jarvis_goals')) || [];
+            this.state.calendar = JSON.parse(localStorage.getItem('jarvis_calendar')) || {};
+            this.state.completion = JSON.parse(localStorage.getItem('jarvis_completion')) || {};
+        }
     }
 
     cacheDOM() {
@@ -95,11 +127,29 @@ class JarvisSystem {
         }, 1000);
     }
 
-    saveState() {
+    async saveState() {
+        // Guardado local de respaldo (opcional pero útil para fallback)
         localStorage.setItem('jarvis_goals', JSON.stringify(this.state.goals));
         localStorage.setItem('jarvis_calendar', JSON.stringify(this.state.calendar));
         localStorage.setItem('jarvis_completion', JSON.stringify(this.state.completion));
         localStorage.setItem('jarvis_lastLogin', this.state.lastLogin);
+
+        // Guardado a Supabase
+        try {
+            const { error } = await this.supabase
+                .from('app_state')
+                .update({
+                    goals: this.state.goals,
+                    calendar: this.state.calendar,
+                    completion: this.state.completion,
+                    last_login: this.state.lastLogin
+                })
+                .eq('id', 'jarvis_main');
+                
+            if (error) console.error("Error en Supabase:", error.message);
+        } catch (err) {
+            console.error("Excepcion saveState:", err);
+        }
     }
 
     renderAll() {
