@@ -21,6 +21,27 @@
         <div class="floating-code code-1 font-mono">0x4F 0x52 0x47</div>
         <div class="floating-code code-2 font-mono">SYS.INIT(true)</div>
 
+        <!-- Pantalla de Login -->
+        <div id="loginOverlay" class="modal-overlay" style="z-index: 1000; display: flex;">
+            <div class="modal-container glass-panel" style="width: 400px; padding: 2.5rem; text-align: center;">
+                <i data-lucide="shield-check" style="width: 48px; height: 48px; margin: 0 auto 1rem; color: var(--accent-primary);"></i>
+                <h2 class="font-mono text-accent" style="margin-bottom: 0.5rem; font-size: 1.5rem;">ACCESO RESTRINGIDO</h2>
+                <p class="font-mono text-muted text-sm" style="margin-bottom: 2rem;">IDENTIFICACIÓN REQUERIDA (SUPABASE AUTH)</p>
+                
+                <div class="form-group" style="text-align: left;">
+                    <label class="font-mono text-xs text-accent">EMAIL_ID</label>
+                    <input type="email" id="loginEmail" class="jarvis-input font-mono" placeholder="usuario@sistema.com">
+                </div>
+                <div class="form-group" style="text-align: left; margin-bottom: 2rem;">
+                    <label class="font-mono text-xs text-accent">PASSWORD_KEY</label>
+                    <input type="password" id="loginPassword" class="jarvis-input font-mono" placeholder="••••••••">
+                </div>
+                
+                <button id="loginBtn" class="jarvis-btn glow-btn solid" style="width: 100%;" onclick="app.login()">.AUTHENTICATE()</button>
+                <p id="loginError" class="font-mono text-xs" style="color: var(--danger-color); margin-top: 1rem; display: none;"></p>
+            </div>
+        </div>
+
         <!-- Encabezado del Sistema -->
         <header class="jarvis-header glass-panel">
             <div class="system-status">
@@ -35,13 +56,18 @@
                     <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
                 </div>
             </div>
-            <div class="header-right">
-                <div class="date-widget">
-                    <span id="currentDate" class="font-mono">19 MAR 2026</span>
+            <div class="header-right" style="display:flex; align-items:center; gap:1rem;">
+                <div style="display:flex; flex-direction:column; align-items:flex-end;">
+                    <div class="date-widget">
+                        <span id="currentDate" class="font-mono">19 MAR 2026</span>
+                    </div>
+                    <div class="time-widget glow-text">
+                        <span id="currentTime" class="font-mono text-accent">00:00:00</span>
+                    </div>
                 </div>
-                <div class="time-widget glow-text">
-                    <span id="currentTime" class="font-mono text-accent">00:00:00</span>
-                </div>
+                <button class="jarvis-btn outline" onclick="app.logout()" style="padding: 0.3rem 0.8rem; font-size: 0.7rem;" title="Cerrar Sesión">
+                    <i data-lucide="log-out" style="width: 14px; height: 14px;"></i>
+                </button>
             </div>
         </header>
 

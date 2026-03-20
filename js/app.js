@@ -5,6 +5,7 @@ class JarvisSystem {
             'https://xzchfmwilvwmcahdbeyy.supabase.co/',
             'sb_publishable_XNQvgLhGjsJE6_r5FAkqhw_rflWvFfo'
         );
+        this.session = null;
         this.state = {
             goals: [],
             calendar: {},
@@ -21,34 +22,86 @@ class JarvisSystem {
     async init() {
         this.cacheDOM();
         this.bindEvents();
+
+        // Chequeo de Sesión de Supabase
+        const { data: { session } } = await this.supabase.auth.getSession();
+        if (!session) {
+            document.getElementById('loginOverlay').style.display = 'flex';
+            if (window.lucide) window.lucide.createIcons();
+            return; // Bloqueamos la inicialización del dashboard hasta loguearse
+        }
+        
+        this.session = session;
+        document.getElementById('loginOverlay').style.display = 'none';
+
         await this.loadData();
         this.startClock();
         this.renderAll();
     }
 
+    async login() {
+        const email = document.getElementById('loginEmail').value;
+        const pass = document.getElementById('loginPassword').value;
+        const btn = document.getElementById('loginBtn');
+        const err = document.getElementById('loginError');
+        
+        btn.innerText = "VERIFYING...";
+        err.style.display = 'none';
+        
+        const { data, error } = await this.supabase.auth.signInWithPassword({
+            email: email,
+            password: pass
+        });
+        
+        if (error) {
+            err.innerText = "ERR: " + error.message;
+            err.style.display = 'block';
+            btn.innerText = ".AUTHENTICATE()";
+        } else {
+            this.session = data.session;
+            document.getElementById('loginOverlay').style.display = 'none';
+            // Iniciar el dashboard
+            await this.loadData();
+            this.startClock();
+            this.renderAll();
+        }
+    }
+
+    async logout() {
+        await this.supabase.auth.signOut();
+        window.location.reload();
+    }
+
     async loadData() {
         try {
-            const { data, error } = await this.supabase
-                .from('app_state')
-                .select('*')
-                .eq('id', 'jarvis_main')
-                .single();
-                
-            if (error) throw error;
+            // 1. Cargar Metas e Hitos
+            const { data: goalsData } = await this.supabase.from('goals').select('*, milestones(*)').order('created_at', { ascending: false });
+            this.state.goals = goalsData || [];
             
-            if (data) {
-                // Sincronizar estado local con DB
-                this.state.goals = data.goals || [];
-                this.state.calendar = data.calendar || {};
-                this.state.completion = data.completion || {};
-                this.state.lastLogin = data.last_login || new Date().toDateString();
+            // 2. Cargar Calendario
+            const { data: calData } = await this.supabase.from('calendar_events').select('*');
+            this.state.calendar = {};
+            if (calData) {
+                calData.forEach(event => {
+                    if (event.category) {   
+                        this.state.calendar[event.category] = { title: event.title, event_id: event.id };
+                    }
+                });
             }
+            
+            // 3. Cargar historial de completados
+            const { data: logsData } = await this.supabase.from('activity_logs').select('*');
+            this.state.completion = {};
+            if (logsData) {
+                logsData.forEach(log => {
+                    if (log.notes) this.state.completion[log.notes] = true;
+                });
+            }
+            
+            this.state.lastLogin = new Date().toDateString();
+            
         } catch (err) {
-            console.error("Error cargando datos:", err);
-            // Intentar cargar de localStorage como fallback la primera vez
-            this.state.goals = JSON.parse(localStorage.getItem('jarvis_goals')) || [];
-            this.state.calendar = JSON.parse(localStorage.getItem('jarvis_calendar')) || {};
-            this.state.completion = JSON.parse(localStorage.getItem('jarvis_completion')) || {};
+            console.error("Error cargando datos desde Supabase:", err);
         }
     }
 
@@ -73,10 +126,14 @@ class JarvisSystem {
     bindEvents() {
         this.modalSubmitBtn.addEventListener('click', () => this.handleModalSubmit());
         
-        this.modalDeleteBtn.addEventListener('click', () => {
+        this.modalDeleteBtn.addEventListener('click', async () => {
             if (this.currentModalMode === 'calendar') {
-                delete this.state.calendar[this.selectedCalCell];
-                this.saveState();
+                const cellId = this.selectedCalCell;
+                const existingId = this.state.calendar[cellId]?.event_id;
+                if (existingId) {
+                    await this.supabase.from('calendar_events').delete().eq('id', existingId);
+                }
+                delete this.state.calendar[cellId];
                 this.renderAll();
                 this.closeModal();
             }
@@ -128,28 +185,11 @@ class JarvisSystem {
     }
 
     async saveState() {
-        // Guardado local de respaldo (opcional pero útil para fallback)
+        // Guardado local de respaldo veloz
         localStorage.setItem('jarvis_goals', JSON.stringify(this.state.goals));
         localStorage.setItem('jarvis_calendar', JSON.stringify(this.state.calendar));
         localStorage.setItem('jarvis_completion', JSON.stringify(this.state.completion));
         localStorage.setItem('jarvis_lastLogin', this.state.lastLogin);
-
-        // Guardado a Supabase
-        try {
-            const { error } = await this.supabase
-                .from('app_state')
-                .update({
-                    goals: this.state.goals,
-                    calendar: this.state.calendar,
-                    completion: this.state.completion,
-                    last_login: this.state.lastLogin
-                })
-                .eq('id', 'jarvis_main');
-                
-            if (error) console.error("Error en Supabase:", error.message);
-        } catch (err) {
-            console.error("Excepcion saveState:", err);
-        }
     }
 
     renderAll() {
@@ -181,11 +221,13 @@ class JarvisSystem {
         
         hours.forEach(hour => {
             const cellId = `${todayName}_${hour}`;
-            if (this.state.calendar[cellId]) {
+            const activityObj = this.state.calendar[cellId];
+            if (activityObj) {
+                const activityTitle = typeof activityObj === 'object' ? activityObj.title : activityObj;
                 todaysActivities.push({
                     id: cellId,
                     time: hour,
-                    name: this.state.calendar[cellId],
+                    name: activityTitle,
                     completed: !!this.state.completion[`${todayDateStr}_${cellId}`]
                 });
             }
@@ -236,19 +278,28 @@ class JarvisSystem {
         }
     }
 
-    toggleDailyActivity(cellId) {
+    async toggleDailyActivity(cellId) {
         const now = new Date();
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const day = String(now.getDate()).padStart(2, '0');
         const todayDateStr = `${year}-${month}-${day}`;
-
         const key = `${todayDateStr}_${cellId}`;
+        const completed = !this.state.completion[key];
         
-        if (this.state.completion[key]) {
-            delete this.state.completion[key];
-        } else {
+        if (completed) {
             this.state.completion[key] = true;
+            const eventId = this.state.calendar[cellId]?.event_id;
+            if (eventId) {
+                await this.supabase.from('activity_logs').insert({
+                    calendar_event_id: eventId,
+                    notes: key,
+                    progress_percentage: 100
+                });
+            }
+        } else {
+            delete this.state.completion[key];
+            await this.supabase.from('activity_logs').delete().eq('notes', key);
         }
         
         this.saveState();
@@ -273,7 +324,8 @@ class JarvisSystem {
                 completedThisMonth++;
                 const parts = key.split('_');
                 const cellId = parts[1] + '_' + parts[2];
-                const actName = this.state.calendar[cellId] || "Actividad Histórica";
+                const activityObj = this.state.calendar[cellId];
+                const actName = activityObj ? (activityObj.title || activityObj) : "Actividad Histórica";
                 
                 if (!activityStats[actName]) {
                     activityStats[actName] = 0;
@@ -335,7 +387,7 @@ class JarvisSystem {
             
             card.innerHTML = `
                 <div class="goal-header" style="pointer-events: none;">
-                    <span class="goal-name font-mono text-accent" style="font-size: 1.1rem; text-transform: uppercase;">${goal.name}</span>
+                    <span class="goal-name font-mono text-accent" style="font-size: 1.1rem; text-transform: uppercase;">${goal.title || goal.name}</span>
                     <span class="goal-pct">${pct}%</span>
                 </div>
                 <div class="progress-bar-container" style="margin-bottom: 0.5rem; height: 6px; pointer-events: none;">
@@ -352,8 +404,9 @@ class JarvisSystem {
         });
     }
 
-    deleteGoal(id) {
+    async deleteGoal(id) {
         if(confirm('¿Eliminar permanente la directriz principal?')) {
+            await this.supabase.from('goals').delete().eq('id', id);
             this.state.goals = this.state.goals.filter(g => g.id !== id);
             this.saveState();
             this.renderAll();
@@ -365,8 +418,9 @@ class JarvisSystem {
         this.selectedGoalId = goalId;
         const goal = this.state.goals.find(g => g.id === goalId);
         if (!goal) return;
+        const goalTitle = goal.title || goal.name || '';
 
-        document.getElementById('goalDetailsTitle').innerText = `< ${goal.name.toUpperCase()} />`;
+        document.getElementById('goalDetailsTitle').innerText = `< ${goalTitle.toUpperCase()} />`;
         this.renderMilestones();
         document.getElementById('goalDetailsModalOverlay').classList.remove('hidden');
         setTimeout(() => document.getElementById('newMilestoneInput').focus(), 100);
@@ -386,7 +440,7 @@ class JarvisSystem {
         document.getElementById('morningTextModalOverlay').classList.add('hidden');
     }
 
-    addMilestone() {
+    async addMilestone() {
         const input = document.getElementById('newMilestoneInput');
         if(!input) return;
         const name = input.value.trim();
@@ -396,48 +450,59 @@ class JarvisSystem {
         if (!goal) return;
 
         if (!goal.milestones) goal.milestones = [];
-        goal.milestones.push({
-            id: 'm_' + Date.now(),
+        
+        const { data } = await this.supabase.from('milestones').insert({
+            goal_id: this.selectedGoalId,
             name: name,
-            comment: '',
             completed: false
-        });
+        }).select().single();
+
+        if (data) {
+            goal.milestones.push(data);
+        }
 
         input.value = '';
-        this.saveState();
-        this.renderMilestones();
-        this.renderAll(); // actualiza la barra principal detrás
+        await this.updateGoalProgress(goal);
     }
 
-    toggleMilestone(mId) {
+    async toggleMilestone(mId) {
         const goal = this.state.goals.find(g => g.id === this.selectedGoalId);
         if (!goal) return;
         const ms = goal.milestones.find(m => m.id === mId);
         if (!ms) return;
 
         ms.completed = !ms.completed;
-        this.saveState();
-        this.renderMilestones();
-        this.renderAll();
+        await this.supabase.from('milestones').update({ completed: ms.completed }).eq('id', mId);
+        await this.updateGoalProgress(goal);
     }
 
-    deleteMilestone(mId) {
+    async deleteMilestone(mId) {
         const goal = this.state.goals.find(g => g.id === this.selectedGoalId);
         if (!goal) return;
+        
+        await this.supabase.from('milestones').delete().eq('id', mId);
         goal.milestones = goal.milestones.filter(m => m.id !== mId);
-        this.saveState();
-        this.renderMilestones();
-        this.renderAll();
+        await this.updateGoalProgress(goal);
     }
 
-    updateMilestoneComment(mId, commentText) {
+    async updateMilestoneComment(mId, commentText) {
         const goal = this.state.goals.find(g => g.id === this.selectedGoalId);
         if (!goal) return;
         const ms = goal.milestones.find(m => m.id === mId);
         if (!ms) return;
 
         ms.comment = commentText;
-        this.saveState();
+        await this.supabase.from('milestones').update({ comment: commentText }).eq('id', mId);
+    }
+
+    async updateGoalProgress(goal) {
+        const total = goal.milestones.length;
+        const completed = goal.milestones.filter(m => m.completed).length;
+        goal.progress_percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
+        await this.supabase.from('goals').update({ progress_percentage: goal.progress_percentage }).eq('id', goal.id);
+        
+        this.renderMilestones();
+        this.renderAll();
     }
 
     renderMilestones() {
@@ -515,14 +580,15 @@ class JarvisSystem {
 
             days.forEach(day => {
                 const cellId = `${day}_${hour}`;
-                const activity = this.state.calendar[cellId];
+                const activityObj = this.state.calendar[cellId];
+                const activityTitle = activityObj ? (activityObj.title || activityObj) : '';
                 
                 const cell = document.createElement('div');
-                cell.className = `cal-cell ${activity ? 'has-event' : ''}`;
-                cell.onclick = () => this.showCalendarModal(day, hour, activity);
+                cell.className = `cal-cell ${activityTitle ? 'has-event' : ''}`;
+                cell.onclick = () => this.showCalendarModal(day, hour, activityTitle);
                 
-                if (activity) {
-                    cell.innerHTML = `<span class="event-text" title="${activity}">${activity}</span>`;
+                if (activityTitle) {
+                    cell.innerHTML = `<span class="event-text" title="${activityTitle}">${activityTitle}</span>`;
                 }
                 
                 this.calendarContainer.appendChild(cell);
@@ -612,7 +678,7 @@ class JarvisSystem {
         this.currentModalMode = null;
     }
 
-    handleModalSubmit() {
+    async handleModalSubmit() {
         const name = this.modalInputName.value.trim();
         if(!name && this.currentModalMode !== 'calendar') {
             this.closeModal();
@@ -620,20 +686,42 @@ class JarvisSystem {
         }
 
         if (this.currentModalMode === 'goal') {
-            this.state.goals.push({
-                id: 'g_' + Date.now(),
-                name: name,
-                milestones: []
-            });
+            const { data } = await this.supabase.from('goals').insert({
+                title: name,
+                progress_percentage: 0
+            }).select().single();
+            
+            if (data) {
+                data.milestones = [];
+                this.state.goals.push(data);
+            }
         } else if (this.currentModalMode === 'calendar') {
+            const cellId = this.selectedCalCell;
+            
             if (name) {
-                this.state.calendar[this.selectedCalCell] = name;
+                const existingId = this.state.calendar[cellId]?.event_id;
+                if (existingId) {
+                    await this.supabase.from('calendar_events').update({ title: name }).eq('id', existingId);
+                    this.state.calendar[cellId].title = name;
+                } else {
+                    const { data } = await this.supabase.from('calendar_events').insert({
+                        title: name,
+                        category: cellId,
+                        start_datetime: new Date().toISOString()
+                    }).select().single();
+                    if (data) {
+                        this.state.calendar[cellId] = { title: data.title, event_id: data.id };
+                    }
+                }
             } else {
-                delete this.state.calendar[this.selectedCalCell];
+                const existingId = this.state.calendar[cellId]?.event_id;
+                if (existingId) {
+                    await this.supabase.from('calendar_events').delete().eq('id', existingId);
+                }
+                delete this.state.calendar[cellId];
             }
         }
 
-        this.saveState();
         this.renderAll();
         this.closeModal();
     }
