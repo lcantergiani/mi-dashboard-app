@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DASHBOARD LUCAS CANTERGIANI</title>
+    <!-- Tipografías futuristas/coding -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <!-- Iconos Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="app" class="jarvis-container">
+        <!-- Interfaz Decorativa -->
+        <div class="bg-pattern"></div>
+        <div class="floating-code code-1 font-mono">0x4F 0x52 0x47</div>
+        <div class="floating-code code-2 font-mono">SYS.INIT(true)</div>
+
+        <!-- Encabezado del Sistema -->
+        <header class="jarvis-header glass-panel">
+            <div class="system-status">
+                <div class="status-indicator online"></div>
+                <div class="status-text-container">
+                    <span class="status-title font-mono">DASHBOARD LUCAS CANTERGIANI</span>
+                    <span class="status-subtitle font-mono">UPLINK_SECURE // SEC: 9.4.2</span>
+                </div>
+            </div>
+            <div class="header-center">
+                <div class="audio-visualizer">
+                    <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="date-widget">
+                    <span id="currentDate" class="font-mono">19 MAR 2026</span>
+                </div>
+                <div class="time-widget glow-text">
+                    <span id="currentTime" class="font-mono text-accent">00:00:00</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tablero Principal -->
+        <main class="jarvis-main">
+            <!-- Panel Izquierdo: Metas Principales -->
+            <section class="panel goals-panel glass-panel code-border">
+                <div class="panel-header">
+                    <i data-lucide="terminal-square" class="panel-icon"></i>
+                    <h2 class="panel-title font-mono">METAS</h2>
+                    <div class="panel-line"></div>
+                    <span class="font-mono text-muted text-xs">[PROC.1]</span>
+                </div>
+                <div id="goalsContainer" class="scrolling-container custom-scrollbar">
+                    <!-- Las metas se inyectan acá por JS -->
+                </div>
+                <button class="jarvis-btn glow-btn outline mt-2" onclick="app.showAddGoalModal()">
+                    <i data-lucide="plus"></i> Agregar Meta
+                </button>
+            </section>
+
+            <!-- Panel Central: Protocolos de Hoy -->
+            <section class="panel habits-panel glass-panel code-border">
+                <div class="panel-header">
+                    <i data-lucide="cpu" class="panel-icon"></i>
+                    <h2 class="panel-title font-mono">AGENDA DE HOY</h2>
+                    <div class="panel-line"></div>
+                    <span class="font-mono text-muted text-xs">[PROC.2]</span>
+                </div>
+                
+                <div class="progress-overview">
+                    <div class="progress-text">
+                        <span class="font-mono">RENDIMIENTO_MEM</span>
+                        <span id="dailyProgressText" class="font-mono glow-text text-accent">0%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div id="dailyProgressBar" class="progress-bar-fill"></div>
+                    </div>
+                </div>
+
+                <div id="habitsContainer" class="scrolling-container custom-scrollbar mt-4">
+                    <!-- Los protocolos se inyectan acá dinámicamente -->
+                </div>
+            </section>
+
+            <!-- Panel Derecho: Reporte Mensual -->
+            <section class="panel report-panel glass-panel code-border">
+                <div class="panel-header">
+                    <i data-lucide="database" class="panel-icon"></i>
+                    <h2 class="panel-title font-mono">REPORTE MENSUAL</h2>
+                    <div class="panel-line"></div>
+                    <span class="font-mono text-muted text-xs">[PROC.3]</span>
+                </div>
+                <div class="report-overview" style="text-align: center; margin-bottom: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.03); border: 1px dashed var(--panel-border); border-radius: 4px;">
+                    <div class="report-main-stat font-mono text-accent glow-text" id="monthlyTotalRatio" style="font-size: 2.5rem; line-height: 1;">0</div>
+                    <div class="report-subtitle font-mono text-muted" style="font-size: 0.8rem; margin-top: 0.5rem; letter-spacing: 1px;">QUERIES_COMPLETADOS_MES</div>
+                </div>
+                <div class="scrolling-container custom-scrollbar" id="reportContainer">
+                    <!-- Estadísticas individuales inyectadas por JS -->
+                </div>
+            </section>
+
+            <!-- Panel Inferior: Calendario -->
+            <section class="panel calendar-panel glass-panel code-border" style="grid-column: 1 / -1; display:flex; flex-direction:column; overflow:hidden; padding: 1rem;">
+                <div class="panel-header" style="margin-bottom: 0.5rem;">
+                    <i data-lucide="calendar-clock" class="panel-icon"></i>
+                    <h2 class="panel-title font-mono">CALENDARIO</h2>
+                    <div class="panel-line"></div>
+                    <span class="font-mono text-muted text-xs">[PROC.4]</span>
+                </div>
+                <div id="calendarContainer" class="calendar-grid custom-scrollbar">
+                    <!-- JS inyecta el grid del calendario aquí -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modales -->
+    <!-- Modal Manifiesto Mañanero -->
+    <div id="morningTextModalOverlay" class="modal-overlay hidden">
+        <div class="modal-container glass-panel" style="width: 700px; max-width: 90vw; padding: 2rem;">
+            <div class="modal-header" style="margin-bottom: 2rem;">
+                <h3 class="modal-title font-mono text-accent" style="font-size: 1.5rem; font-weight: bold;">&lt;MANIFIESTO_AM/&gt;</h3>
+                <button class="close-btn" onclick="app.closeMorningTextModal()"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body custom-scrollbar" style="max-height: 60vh; overflow-y: auto; text-align: justify; line-height: 1.6; font-size: 1.1rem; color: var(--text-main); padding-right: 1rem;">
+                <p style="margin-bottom: 1rem;">Yo Lucas Cantergiani soy una persona próspera y exitosa. Honesta, inteligente, que aprende facilmente, con gran sentido del humor, que es sobria, leal, optimista, que se fija metas, que trabaja inteligentemente y me automotivo. Soy una persona disiciplinada que me concentro, con gran autocontrol, entusiasta y diligente como trabajador de un equipo. Alguien que cuida su higiene y hace el mejor esfuerzo para que mi imagen sea saludable y permanezca bien cimentada. </p>
+                <br>
+                <p style="margin-bottom: 1rem;">Yo Lucas Cantergiani Soy un comunicador nato. Frente a la cámara, mi extroversión brilla con luz propia. Mis palabras fluyen con claridad y carisma, capturando la atención y el interés de mi audiencia. Mi marca personal es fuerte y respetada. Refleja quién soy y lo que valgo. </p>
+                <p style="margin-bottom: 1rem;">Hoy, a medida que interactúo con los demás, lo hago con la confianza de alguien que ya ha alcanzado un gran éxito. Mis conversaciones son atractivas y persuasivas. Soy un imán para las oportunidades y las relaciones positivas.</p>
+                <p style="margin-bottom: 1rem;">Esta realidad es mía. Vivo cada día con gratitud por mi riqueza, mi habilidad para comunicar y mi marca personal poderosa.</p>
+                <p style="margin-bottom: 1rem;">Gracias señor por darme prosperidad y riqueza. Esta riqueza es un reflejo de mi inteligencia, habilidad y persistencia. </p>
+                <p style="margin-bottom: 1rem;">Hoy será un día magnífico donde me sucederan cosas maravillosas con un futuro ilimitado. Reconozco que afirmando y desarrollando estas cualidades, las cuales ya poseo y que me dan una legítima oportunidad de ser más feliz, más sano, más próspero, más seguro, tener más amigos, mayor paz mental, mejores relaciones familiares y que me dan la legítima esperanza de que el futuro será aún mejor.</p>
+            </div>
+            <div class="modal-footer" style="margin-top: 2rem; display: flex; justify-content: center;">
+                <button class="jarvis-btn glow-btn solid" style="width: auto; padding: 0.75rem 2rem;" onclick="app.closeMorningTextModal()">.ACKNOWLEDGE()</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Base (Nueva Meta/Calendario) -->
+    <div id="modalOverlay" class="modal-overlay hidden">
+        <div id="modalContainer" class="modal-container glass-panel">
+            <div class="modal-header">
+                <h3 id="modalTitle" class="modal-title font-mono">INPUT_REQUIRED</h3>
+                <button class="close-btn" onclick="app.closeModal()"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="modalInputName" class="font-mono text-accent">const IDENTIFICADOR =</label>
+                    <input type="text" id="modalInputName" class="jarvis-input font-mono" placeholder="'Descripción...'">
+                </div>
+            </div>
+            <div class="modal-footer" style="display:flex; gap: 1rem;">
+                <button class="jarvis-btn outline" id="modalDeleteBtn" style="display:none; color: var(--danger-color); border-color: var(--danger-color);"><i data-lucide="trash-2"></i> .DROP()</button>
+                <button class="jarvis-btn glow-btn solid" id="modalSubmitBtn">.EXECUTE()</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detalle Directriz (Hitos) -->
+    <div id="goalDetailsModalOverlay" class="modal-overlay hidden">
+        <div class="modal-container glass-panel" style="width: 600px; padding: 2rem;">
+            <div class="modal-header" style="margin-bottom: 2rem;">
+                <h3 id="goalDetailsTitle" class="modal-title font-mono text-accent" style="font-size: 1.5rem; font-weight: bold;">&lt;DIRECTRIZ_DETALLE/&gt;</h3>
+                <button class="close-btn" onclick="app.closeGoalDetailsModal()"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="progress-overview" style="margin-bottom: 1.5rem;">
+                    <div class="progress-text">
+                        <span class="font-mono font-bold text-sm">PROGRESO DEL PROYECTO</span>
+                        <span id="goalDetailsProgressText" class="font-mono glow-text text-accent font-bold" style="font-size: 1.2rem;">0%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div id="goalDetailsProgressBar" class="progress-bar-fill"></div>
+                    </div>
+                </div>
+
+                <div class="form-group" style="display:flex; gap:0.5rem; margin-bottom: 2rem;">
+                    <input type="text" id="newMilestoneInput" class="jarvis-input font-mono" placeholder="'Asignar siguiente hito/etapa...'">
+                    <button class="jarvis-btn glow-btn solid" style="width: auto; padding: 0.75rem 1.5rem;" onclick="app.addMilestone()">.push()</button>
+                </div>
+
+                <div id="milestonesContainer" class="scrolling-container custom-scrollbar" style="max-height: 40vh; padding-right: 0.5rem;">
+                    <!-- Hitos inyectados aquí -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
